@@ -1,0 +1,27 @@
+# Docker Compose 环境专用配置：host 指向 compose 服务名
+app:
+  name: go-starter
+  env: dev
+  port: 8080
+
+mysql:
+  host: mysql
+  port: 3306
+  user: root
+  password: root
+  dbname: go_starter
+  max_idle_conns: 10
+  max_open_conns: 100
+
+redis:
+  addr: redis:6379
+  password: ""
+  db: 0
+
+mongo:
+  uri: mongodb://mongo:27017
+  database: go_starter
+
+log:
+  level: info
+  file: ""   # 容器内输出到 stdout，由 docker logs 收集

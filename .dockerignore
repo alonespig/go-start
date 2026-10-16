@@ -1,0 +1,12 @@
+.git
+.idea
+.vscode
+bin
+logs
+*.log
+README.md
+Makefile
+Dockerfile
+docker-compose.yml
+.dockerignore
+config.docker.yaml

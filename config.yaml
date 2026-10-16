@@ -1,0 +1,26 @@
+app:
+  name: go-starter
+  env: dev
+  port: 8080
+
+mysql:
+  host: 127.0.0.1
+  port: 3306
+  user: root
+  password: ""
+  dbname: go_starter
+  max_idle_conns: 10
+  max_open_conns: 100
+
+redis:
+  addr: 127.0.0.1:6379
+  password: ""
+  db: 0
+
+mongo:
+  uri: mongodb://127.0.0.1:27017
+  database: go_starter
+
+log:
+  level: info
+  file: logs/app.log
