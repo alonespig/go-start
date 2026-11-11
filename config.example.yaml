@@ -41,6 +41,10 @@ mysql:
   dbname: go_starter
   max_idle_conns: 10
   max_open_conns: 100
+  conn_max_lifetime: 1h
+  conn_max_idle_time: 10m
+  prepare_stmt: false
+  slow_threshold: 200ms
 
 redis:
   addr: 127.0.0.1:6379

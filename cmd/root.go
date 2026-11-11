@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/alonespig/go-start/config"
 	"github.com/spf13/cobra"
 )
 
@@ -21,6 +22,15 @@ func Execute() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+}
+
+// loadConfig 统一加载配置并补上命令层错误前缀，避免各命令重复处理
+func loadConfig() (*config.Config, error) {
+	cfg, err := config.Load(cfgFile)
+	if err != nil {
+		return nil, fmt.Errorf("加载配置失败: %w", err)
+	}
+	return cfg, nil
 }
 
 func init() {

@@ -14,12 +14,16 @@ import (
 // gormLogger 把 GORM 的 SQL 日志接到全局 zap，统一日志格式。
 // 普通 SQL 走 debug 级别（想看 SQL 把 log.level 配成 debug），慢查询 warn，错误 error。
 type gormLogger struct {
-	level gormlogger.LogLevel
+	level         gormlogger.LogLevel
+	slowThreshold time.Duration
 }
 
 // NewGormLogger 返回接入全局 zap 的 GORM logger
-func NewGormLogger() gormlogger.Interface {
-	return &gormLogger{level: gormlogger.Info}
+func NewGormLogger(slowThreshold time.Duration) gormlogger.Interface {
+	if slowThreshold <= 0 {
+		slowThreshold = 200 * time.Millisecond
+	}
+	return &gormLogger{level: gormlogger.Info, slowThreshold: slowThreshold}
 }
 
 func (l *gormLogger) LogMode(level gormlogger.LogLevel) gormlogger.Interface {
@@ -62,7 +66,7 @@ func (l *gormLogger) Trace(ctx context.Context, begin time.Time, fc func() (sql 
 			zap.Int64("rows", rows),
 			zap.Duration("latency", elapsed),
 		)
-	case elapsed > 200*time.Millisecond && l.level >= gormlogger.Warn:
+	case elapsed > l.slowThreshold && l.level >= gormlogger.Warn:
 		log.Warn("gorm slow sql",
 			zap.String("sql", sql),
 			zap.Int64("rows", rows),

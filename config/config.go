@@ -45,13 +45,17 @@ type CORSConfig struct {
 }
 
 type MySQLConfig struct {
-	Host         string `mapstructure:"host"`
-	Port         int    `mapstructure:"port"`
-	User         string `mapstructure:"user"`
-	Password     string `mapstructure:"password"`
-	DBName       string `mapstructure:"dbname"`
-	MaxIdleConns int    `mapstructure:"max_idle_conns"`
-	MaxOpenConns int    `mapstructure:"max_open_conns"`
+	Host            string        `mapstructure:"host"`
+	Port            int           `mapstructure:"port"`
+	User            string        `mapstructure:"user"`
+	Password        string        `mapstructure:"password"`
+	DBName          string        `mapstructure:"dbname"`
+	MaxIdleConns    int           `mapstructure:"max_idle_conns"`
+	MaxOpenConns    int           `mapstructure:"max_open_conns"`
+	ConnMaxLifetime time.Duration `mapstructure:"conn_max_lifetime"`
+	ConnMaxIdleTime time.Duration `mapstructure:"conn_max_idle_time"`
+	PrepareStmt     bool          `mapstructure:"prepare_stmt"`
+	SlowThreshold   time.Duration `mapstructure:"slow_threshold"`
 }
 
 // DSN 返回 GORM 的 MySQL 连接串
@@ -105,6 +109,10 @@ func Load(path string) (*Config, error) {
 	v.SetDefault("mysql.port", 3306)
 	v.SetDefault("mysql.max_idle_conns", 10)
 	v.SetDefault("mysql.max_open_conns", 100)
+	v.SetDefault("mysql.conn_max_lifetime", "1h")
+	v.SetDefault("mysql.conn_max_idle_time", "10m")
+	v.SetDefault("mysql.prepare_stmt", false)
+	v.SetDefault("mysql.slow_threshold", "200ms")
 	v.SetDefault("redis.addr", "127.0.0.1:6379")
 	v.SetDefault("redis.db", 0)
 	v.SetDefault("log.level", "info")
@@ -137,6 +145,15 @@ func (c *Config) Validate() error {
 	}
 	if c.MySQL.Port <= 0 || c.MySQL.Port > 65535 {
 		return fmt.Errorf("mysql.port 非法: %d", c.MySQL.Port)
+	}
+	if c.MySQL.MaxIdleConns < 0 || c.MySQL.MaxOpenConns < 0 {
+		return fmt.Errorf("mysql.max_idle_conns、mysql.max_open_conns 不能为负数")
+	}
+	if c.MySQL.ConnMaxLifetime < 0 || c.MySQL.ConnMaxIdleTime < 0 {
+		return fmt.Errorf("mysql.conn_max_lifetime、mysql.conn_max_idle_time 不能为负数")
+	}
+	if c.MySQL.SlowThreshold <= 0 {
+		return fmt.Errorf("mysql.slow_threshold 必须大于 0")
 	}
 	if c.Redis.Addr == "" {
 		return fmt.Errorf("redis.addr 不能为空")

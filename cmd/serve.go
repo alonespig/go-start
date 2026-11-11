@@ -9,7 +9,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/alonespig/go-start/config"
 	"github.com/alonespig/go-start/internal/di"
 	"github.com/alonespig/go-start/pkg/log"
 	"github.com/spf13/cobra"
@@ -20,9 +19,9 @@ var serveCmd = &cobra.Command{
 	Use:   "serve",
 	Short: "启动 HTTP 服务",
 	RunE: func(c *cobra.Command, args []string) error {
-		cfg, err := config.Load(cfgFile)
+		cfg, err := loadConfig()
 		if err != nil {
-			return fmt.Errorf("加载配置失败: %w", err)
+			return err
 		}
 
 		container, err := di.Build(cfg)

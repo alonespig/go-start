@@ -5,10 +5,10 @@ import (
 
 	"github.com/alonespig/go-start/internal/api/dto"
 	"github.com/alonespig/go-start/internal/api/response"
+	"github.com/alonespig/go-start/internal/api/validation"
 	"github.com/alonespig/go-start/internal/service"
 	"github.com/alonespig/go-start/pkg/errcode"
 	"github.com/alonespig/go-start/pkg/slice"
-	"github.com/alonespig/go-start/pkg/validation"
 	"github.com/gin-gonic/gin"
 )
 

@@ -1,13 +1,11 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/alonespig/go-start/config"
 	"github.com/alonespig/go-start/internal/di"
 	"github.com/alonespig/go-start/pkg/log"
 	"github.com/robfig/cron/v3"
@@ -18,9 +16,9 @@ var cronCmd = &cobra.Command{
 	Use:   "cron",
 	Short: "启动定时任务",
 	RunE: func(c *cobra.Command, args []string) error {
-		cfg, err := config.Load(cfgFile)
+		cfg, err := loadConfig()
 		if err != nil {
-			return fmt.Errorf("加载配置失败: %w", err)
+			return err
 		}
 
 		container, err := di.Build(cfg)

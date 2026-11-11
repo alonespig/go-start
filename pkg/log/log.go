@@ -4,24 +4,34 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/alonespig/go-start/config"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
+// Options 日志初始化参数。由调用方从配置映射进来，
+// 让 pkg/log 不依赖具体项目的 config 类型，方便抽成公共库。
+type Options struct {
+	Level      string
+	File       string
+	MaxSize    int // MB
+	MaxBackups int // 保留的旧文件数
+	MaxAge     int // 保留天数
+	Compress   bool
+}
+
 // init 在包被导入时自动用默认配置初始化全局 logger。
 // 保证任何地方 import 本包即可直接打日志，即使忘了调 Init 也不会静默丢日志。
 func init() {
-	if logger, err := build(config.LogConfig{Level: "info"}); err == nil {
+	if logger, err := build(Options{Level: "info"}); err == nil {
 		zap.ReplaceGlobals(logger)
 	}
 }
 
 // Init 用自定义配置（如 config.yaml 的 log 段）重新初始化全局 logger。
 // 在加载完配置后调用，会覆盖 init() 的默认值。
-func Init(cfg config.LogConfig) error {
-	logger, err := build(cfg)
+func Init(opts Options) error {
+	logger, err := build(opts)
 	if err != nil {
 		return err
 	}
@@ -29,9 +39,9 @@ func Init(cfg config.LogConfig) error {
 	return nil
 }
 
-func build(cfg config.LogConfig) (*zap.Logger, error) {
+func build(opts Options) (*zap.Logger, error) {
 	level := zapcore.InfoLevel
-	if err := level.UnmarshalText([]byte(cfg.Level)); err != nil {
+	if err := level.UnmarshalText([]byte(opts.Level)); err != nil {
 		return nil, err
 	}
 
@@ -48,16 +58,16 @@ func build(cfg config.LogConfig) (*zap.Logger, error) {
 	))
 
 	// 文件输出（可选），按大小/时间自动轮转，避免日志无限增长
-	if cfg.File != "" {
-		if err := os.MkdirAll(filepath.Dir(cfg.File), 0o755); err != nil {
+	if opts.File != "" {
+		if err := os.MkdirAll(filepath.Dir(opts.File), 0o755); err != nil {
 			return nil, err
 		}
 		writer := &lumberjack.Logger{
-			Filename:   cfg.File,
-			MaxSize:    cfg.MaxSize,    // MB
-			MaxBackups: cfg.MaxBackups, // 保留的旧文件数
-			MaxAge:     cfg.MaxAge,     // 天
-			Compress:   cfg.Compress,
+			Filename:   opts.File,
+			MaxSize:    opts.MaxSize,
+			MaxBackups: opts.MaxBackups,
+			MaxAge:     opts.MaxAge,
+			Compress:   opts.Compress,
 		}
 		cores = append(cores, zapcore.NewCore(
 			zapcore.NewJSONEncoder(encoderConfig),

@@ -2,10 +2,10 @@ package main
 
 import (
 	"github.com/alonespig/go-start/cmd"
+	"github.com/alonespig/go-start/internal/api/validation"
 
 	// 导入即用默认配置初始化全局 logger
 	_ "github.com/alonespig/go-start/pkg/log"
-	"github.com/alonespig/go-start/pkg/validation"
 )
 
 func main() {

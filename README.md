@@ -29,7 +29,6 @@ go-starter/
 │   ├── log/                 # 全局日志（zap 单例）
 │   ├── errcode/             # 业务错误码 + BizError
 │   ├── cache/               # 泛型缓存工具（cache-aside）
-│   ├── validation/          # 参数校验错误格式化
 │   └── slice/               # 泛型集合工具（Map）
 └── internal/
     ├── api/                 # HTTP 层（对外接口的一切）
@@ -37,6 +36,7 @@ go-starter/
     │   ├── handler/         # 绑定 dto → 调 service → 包 response
     │   ├── middleware/      # 中间件
     │   ├── dto/             # 请求/响应数据结构
+    │   ├── validation/      # 参数校验错误格式化
     │   └── response/        # 统一响应信封
     ├── di/                  # 依赖注入 / 组合根
     ├── service/             # 业务逻辑层
@@ -123,7 +123,7 @@ curl http://localhost:8080/health
 
 以「新增一个实体」为例，按依赖方向从内向外加：
 
-1. `model/` 加数据模型（GORM / bson tag）。
+1. `model/` 加数据模型（GORM tag）。
 2. `repository/` 加接口 + 实现（`NewXxxRepository`）；通用 CRUD 直接嵌入 `BaseRepo[T]`，只有特殊查询才自己写。
 3. `service/` 加接口 + 实现（`NewXxxService`）；缓存复用泛型 `cache.GetOrSet`。
 4. `api/dto/` 加请求/响应 DTO（`ToModel` / `ToXxxResp`）。

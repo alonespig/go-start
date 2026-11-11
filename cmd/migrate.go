@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/alonespig/go-start/config"
 	"github.com/alonespig/go-start/internal/infra/db"
 	"github.com/alonespig/go-start/internal/model"
 	"github.com/spf13/cobra"
@@ -13,9 +12,9 @@ var migrateCmd = &cobra.Command{
 	Use:   "migrate",
 	Short: "执行数据库迁移",
 	RunE: func(c *cobra.Command, args []string) error {
-		cfg, err := config.Load(cfgFile)
+		cfg, err := loadConfig()
 		if err != nil {
-			return fmt.Errorf("加载配置失败: %w", err)
+			return err
 		}
 
 		// 迁移只需要 MySQL，直接用 db.New，不依赖 Redis

@@ -29,7 +29,14 @@ type Container struct {
 // Build 按依赖顺序装配整个对象图：log → infra → repository → service → api
 func Build(cfg *config.Config) (*Container, error) {
 	// 1. 用配置覆盖全局 logger 的默认初始化（init 里已用默认值初始化过）
-	if err := log.Init(cfg.Log); err != nil {
+	if err := log.Init(log.Options{
+		Level:      cfg.Log.Level,
+		File:       cfg.Log.File,
+		MaxSize:    cfg.Log.MaxSize,
+		MaxBackups: cfg.Log.MaxBackups,
+		MaxAge:     cfg.Log.MaxAge,
+		Compress:   cfg.Log.Compress,
+	}); err != nil {
 		return nil, err
 	}
 
