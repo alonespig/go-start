@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/alonespig/go-start/config"
 	"github.com/redis/go-redis/v9"
-	"go-starter/config"
 )
 
 // New 初始化 Redis 客户端

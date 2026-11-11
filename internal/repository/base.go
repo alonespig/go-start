@@ -51,16 +51,16 @@ func (r *BaseRepo[T]) List(ctx context.Context, page, size int) ([]T, int64, err
 	return list, total, nil
 }
 
-// Update 按主键更新单列
-func (r *BaseRepo[T]) Update(ctx context.Context, id int64, column string, value any) error {
-	_, err := gorm.G[T](r.db).Where("id = ?", id).Update(ctx, column, value)
-	return err
+// Update 按主键更新单列，返回影响行数（0 表示记录不存在或值未变化）
+func (r *BaseRepo[T]) Update(ctx context.Context, id int64, column string, value any) (int64, error) {
+	n, err := gorm.G[T](r.db).Where("id = ?", id).Update(ctx, column, value)
+	return int64(n), err
 }
 
-// Updates 按主键更新（用 T 的非零字段；零值字段请用 Update 单列）
-func (r *BaseRepo[T]) Updates(ctx context.Context, id int64, t T) error {
-	_, err := gorm.G[T](r.db).Where("id = ?", id).Updates(ctx, t)
-	return err
+// Updates 按主键更新（用 T 的非零字段；零值字段请用 Update 单列），返回影响行数
+func (r *BaseRepo[T]) Updates(ctx context.Context, id int64, t T) (int64, error) {
+	n, err := gorm.G[T](r.db).Where("id = ?", id).Updates(ctx, t)
+	return int64(n), err
 }
 
 // UpdateBy 条件更新单列，返回影响行数
@@ -69,10 +69,10 @@ func (r *BaseRepo[T]) UpdateBy(ctx context.Context, column string, value any, qu
 	return int64(n), err
 }
 
-// Delete 按主键删除
-func (r *BaseRepo[T]) Delete(ctx context.Context, id int64) error {
-	_, err := gorm.G[T](r.db).Where("id = ?", id).Delete(ctx)
-	return err
+// Delete 按主键删除，返回影响行数
+func (r *BaseRepo[T]) Delete(ctx context.Context, id int64) (int64, error) {
+	n, err := gorm.G[T](r.db).Where("id = ?", id).Delete(ctx)
+	return int64(n), err
 }
 
 // DeleteBy 条件删除，返回影响行数

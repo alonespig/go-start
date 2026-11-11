@@ -4,9 +4,9 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/alonespig/go-start/pkg/errcode"
+	"github.com/alonespig/go-start/pkg/log"
 	"github.com/gin-gonic/gin"
-	"go-starter/pkg/errcode"
-	"go-starter/pkg/log"
 	"go.uber.org/zap"
 )
 

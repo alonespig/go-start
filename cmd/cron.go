@@ -7,11 +7,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/alonespig/go-start/config"
+	"github.com/alonespig/go-start/internal/di"
+	"github.com/alonespig/go-start/pkg/log"
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/cobra"
-	"go-starter/config"
-	"go-starter/internal/di"
-	"go-starter/pkg/log"
 )
 
 var cronCmd = &cobra.Command{

@@ -8,12 +8,11 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
+	"github.com/alonespig/go-start/config"
+	"github.com/alonespig/go-start/internal/di"
+	"github.com/alonespig/go-start/pkg/log"
 	"github.com/spf13/cobra"
-	"go-starter/config"
-	"go-starter/internal/di"
-	"go-starter/pkg/log"
 	"go.uber.org/zap"
 )
 
@@ -45,6 +44,8 @@ var serveCmd = &cobra.Command{
 			WriteTimeout: cfg.Server.WriteTimeout,
 			// keep-alive 空闲回收；只作用于请求之间，不影响进行中的长连接
 			IdleTimeout: cfg.Server.IdleTimeout,
+			// 请求头大小上限，防止超大头部占用内存
+			MaxHeaderBytes: cfg.Server.MaxHeaderBytes,
 		}
 
 		// 监听失败（如端口被占用）要传回主 goroutine，否则进程会一直阻塞在 <-quit 上假装在跑
@@ -67,7 +68,7 @@ var serveCmd = &cobra.Command{
 		}
 
 		log.Info("shutting down server...")
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), cfg.Server.ShutdownTimeout)
 		defer cancel()
 		return srv.Shutdown(ctx)
 	},

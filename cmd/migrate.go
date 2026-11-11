@@ -3,10 +3,10 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/alonespig/go-start/config"
+	"github.com/alonespig/go-start/internal/infra/db"
+	"github.com/alonespig/go-start/internal/model"
 	"github.com/spf13/cobra"
-	"go-starter/config"
-	"go-starter/internal/infra/db"
-	"go-starter/internal/model"
 )
 
 var migrateCmd = &cobra.Command{

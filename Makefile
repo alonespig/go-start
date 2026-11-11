@@ -1,4 +1,4 @@
-.PHONY: build run serve cron migrate tidy
+.PHONY: build run serve cron migrate tidy fmt vet test lint
 
 build:
 	go build -o bin/go-starter .
@@ -17,3 +17,15 @@ migrate:
 
 tidy:
 	go mod tidy
+
+fmt:
+	go fmt ./...
+
+vet:
+	go vet ./...
+
+test:
+	go test ./...
+
+lint:
+	golangci-lint run ./...

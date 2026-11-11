@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"go-starter/config"
+	"github.com/alonespig/go-start/config"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -14,6 +14,8 @@ func New(cfg config.MySQLConfig) (*gorm.DB, error) {
 	gdb, err := gorm.Open(mysql.Open(cfg.DSN()), &gorm.Config{
 		// SQL 日志接入全局 zap（普通 SQL 为 debug 级别，慢查询/错误会打到 warn/error）
 		Logger: NewGormLogger(),
+		// 把驱动错误翻译成 gorm.ErrDuplicatedKey 等通用错误，便于上层统一处理
+		TranslateError: true,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("连接 mysql 失败: %w", err)

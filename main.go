@@ -1,11 +1,11 @@
 package main
 
 import (
-	"go-starter/cmd"
+	"github.com/alonespig/go-start/cmd"
 
 	// 导入即用默认配置初始化全局 logger
-	_ "go-starter/pkg/log"
-	"go-starter/pkg/validation"
+	_ "github.com/alonespig/go-start/pkg/log"
+	"github.com/alonespig/go-start/pkg/validation"
 )
 
 func main() {

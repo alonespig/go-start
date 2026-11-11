@@ -3,13 +3,13 @@ package handler
 import (
 	"strconv"
 
+	"github.com/alonespig/go-start/internal/api/dto"
+	"github.com/alonespig/go-start/internal/api/response"
+	"github.com/alonespig/go-start/internal/service"
+	"github.com/alonespig/go-start/pkg/errcode"
+	"github.com/alonespig/go-start/pkg/slice"
+	"github.com/alonespig/go-start/pkg/validation"
 	"github.com/gin-gonic/gin"
-	"go-starter/internal/api/dto"
-	"go-starter/internal/api/response"
-	"go-starter/internal/service"
-	"go-starter/pkg/errcode"
-	"go-starter/pkg/slice"
-	"go-starter/pkg/validation"
 )
 
 type UserHandler struct {
@@ -28,11 +28,12 @@ func (h *UserHandler) Create(c *gin.Context) {
 			validation.FormatError(err))
 		return
 	}
-	if err := h.svc.Create(c.Request.Context(), req.ToModel()); err != nil {
+	id, err := h.svc.Create(c.Request.Context(), req.ToModel())
+	if err != nil {
 		response.Fail(c, err)
 		return
 	}
-	response.OK(c, gin.H{"message": "created"})
+	response.OK(c, gin.H{"id": id})
 }
 
 func (h *UserHandler) Get(c *gin.Context) {

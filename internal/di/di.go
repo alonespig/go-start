@@ -6,14 +6,14 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
-	"go-starter/config"
-	"go-starter/internal/api/handler"
-	"go-starter/internal/api/router"
-	"go-starter/internal/infra/db"
-	infraRedis "go-starter/internal/infra/redis"
-	"go-starter/internal/repository"
-	"go-starter/internal/service"
-	"go-starter/pkg/log"
+	"github.com/alonespig/go-start/config"
+	"github.com/alonespig/go-start/internal/api/handler"
+	"github.com/alonespig/go-start/internal/api/router"
+	"github.com/alonespig/go-start/internal/infra/db"
+	infraRedis "github.com/alonespig/go-start/internal/infra/redis"
+	"github.com/alonespig/go-start/internal/repository"
+	"github.com/alonespig/go-start/internal/service"
+	"github.com/alonespig/go-start/pkg/log"
 )
 
 // Container 组合根：持有装配好的所有依赖
@@ -57,12 +57,15 @@ func Build(cfg *config.Config) (*Container, error) {
 	// 4. service（注入 repository，返回接口）
 	userSvc := service.NewUserService(userRepo, rdb)
 
-	// 5. handler（注入 service）
-	healthHandler := handler.NewHealthHandler()
+	// 5. handler（注入 service / 依赖，供探针使用）
+	healthHandler := handler.NewHealthHandler(gdb, rdb)
 	userHandler := handler.NewUserHandler(userSvc)
 
-	// 6. router（注入 handler；logger 走全局，不再传）
-	r := router.New(healthHandler, userHandler)
+	// 6. router（注入配置与 handler；logger 走全局，不再传）
+	r, err := router.New(cfg, healthHandler, userHandler)
+	if err != nil {
+		return nil, err
+	}
 
 	return &Container{
 		Config:      cfg,

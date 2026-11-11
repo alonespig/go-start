@@ -15,7 +15,7 @@
 
 ```
 go-starter/
-├── main.go                  # 入口，仅调用 cmd.Execute()
+├── main.go                  # 入口：注册校验规则 → cmd.Execute()
 ├── config.example.yaml      # 配置模板（复制为 config.yaml 后使用）
 ├── config.yaml              # 本地配置，已被 gitignore，不提交
 ├── cmd/                     # Cobra 命令层（每个命令一种进程角色）
@@ -29,6 +29,7 @@ go-starter/
 │   ├── log/                 # 全局日志（zap 单例）
 │   ├── errcode/             # 业务错误码 + BizError
 │   ├── cache/               # 泛型缓存工具（cache-aside）
+│   ├── validation/          # 参数校验错误格式化
 │   └── slice/               # 泛型集合工具（Map）
 └── internal/
     ├── api/                 # HTTP 层（对外接口的一切）
@@ -85,11 +86,29 @@ curl http://localhost:8080/health
 
 通用参数：`--config` 指定配置文件路径（默认 `config.yaml`）。
 
+开发辅助命令（需要 `make`）：
+
+| 命令 | 说明 |
+| --- | --- |
+| `make fmt` | 格式化代码 |
+| `make vet` | 静态检查 |
+| `make test` | 运行测试 |
+| `make lint` | golangci-lint（需本地安装，版本要支持 Go 1.26） |
+| `make build` | 编译到 `bin/go-starter` |
+
+## 配置
+
+- 配置模板见 `config.example.yaml`，复制为 `config.yaml` 后使用；`config.yaml` 不提交。
+- 所有配置项都支持 `GO_STARTER_` 前缀的环境变量覆盖，例如 `GO_STARTER_MYSQL_PASSWORD`、`GO_STARTER_REDIS_ADDR`，优先级高于配置文件，适合容器和 CI 注入密码。
+- `server` 段控制超时、请求头大小、可信代理与优雅退出；`cors` 段控制跨域来源；`log` 段控制级别、输出文件与轮转（`max_size` / `max_backups` / `max_age` / `compress`）。
+- 启动时做基础校验（端口、MySQL / Redis 必填项、超时值等），配置错误直接退出，不会带病运行。
+
 ## 接口示例
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
-| GET | `/health` | 健康检查 |
+| GET | `/health` | 存活检查 |
+| GET | `/ready` | 就绪检查（MySQL / Redis） |
 | POST | `/api/users` | 创建用户 |
 | GET | `/api/users/:id` | 查询用户（带 Redis 缓存） |
 | GET | `/api/users?page=1&size=10` | 用户列表（分页） |
@@ -115,11 +134,13 @@ curl http://localhost:8080/health
 
 ## 注意事项
 
+- 参数校验用 `pkg/validation.FormatError` + `response.FailWithData`，错误明细放在 `data` 字段；不要直接把 validator 的英文原文返回给前端。
+- 每个请求会生成或透传 `X-Request-ID`，日志里带 `request_id`，排查线上问题时可按它串联一次请求。
 - 错误码统一放 `pkg/errcode`，业务层返回 `BizError`，handler 层用 `response.Fail` 翻译成响应。不要把业务错误码放 `api` 层，避免 service 反向依赖 api。
 - HTTP 超时在配置的 `server` 段设置（默认 `read_header_timeout: 10s`、`read_timeout: 30s`、`write_timeout: 30s`、`idle_timeout: 120s`）。上 SSE 前把 `write_timeout` 调成 `0`，或在 handler 里用 `http.NewResponseController(c.Writer).SetWriteDeadline(time.Time{})` 单独取消；WebSocket 建议 `read_timeout`、`write_timeout` 都设 `0`（或在升级拿到连接后自行清除 deadline）。
-- 优雅退出最多等 10s：SSE 是活跃请求，`Shutdown` 会一直等到超时，需要在退出时主动通知 SSE handler 关闭；WebSocket 连接被 hijack 后不受 `Shutdown` 管理，需要自己记录并在退出时关闭。
+- 优雅退出最多等 `server.shutdown_timeout`（默认 10s）：SSE 是活跃请求，`Shutdown` 会一直等到超时，需要在退出时主动通知 SSE handler 关闭；WebSocket 连接被 hijack 后不受 `Shutdown` 管理，需要自己记录并在退出时关闭。
 - Redis 目前定位为缓存（cache-aside 模式），需要分布式锁/计数器时再单独封装。
-- 模块名当前为 `go-starter`，如需发布可改成 `github.com/yourname/go-starter` 并全局替换 import 路径。
+- 模块路径为 `github.com/alonespig/go-start`，迁移到其他仓库时同步修改 `go.mod` 与 import 路径即可。
 
 ## Docker 部署
 
@@ -139,6 +160,7 @@ docker compose run --rm app migrate
 
 ```bash
 curl http://localhost:8080/health
+curl http://localhost:8080/ready
 ```
 
 说明：容器内使用 `config.docker.yaml`（`docker-compose.yml` 已将其挂载为 `/app/config.yaml`），数据库地址指向 compose 服务名（`mysql` / `redis`）。本机直接 `go run . serve` 时用根目录的 `config.yaml`（地址是 `127.0.0.1`），两者互不影响。

@@ -1,6 +1,7 @@
 # 配置示例：复制为 config.yaml 后按需修改
 # cp config.example.yaml config.yaml
 # config.yaml 已被 .gitignore 忽略，不会提交到仓库
+# 所有配置项都支持环境变量覆盖：GO_STARTER_MYSQL_PASSWORD、GO_STARTER_REDIS_ADDR 等
 
 app:
   name: go-starter
@@ -18,6 +19,19 @@ server:
   write_timeout: 30s
   # keep-alive 空闲连接回收时间；只作用于请求之间，不影响进行中的长连接
   idle_timeout: 120s
+  # 优雅退出等待时间
+  shutdown_timeout: 10s
+  # 请求头大小上限（字节）
+  max_header_bytes: 1048576
+  # 可信代理 CIDR；留空表示不信任 X-Forwarded-For，ClientIP 取直连地址
+  # 部署在 nginx / 负载均衡后时填写其网段，例如 ["10.0.0.0/8"]
+  trusted_proxies: []
+
+cors:
+  # "*" 表示允许任意来源；生产建议改成具体域名列表
+  allowed_origins: ["*"]
+  # 允许携带 Cookie / Authorization 时不能配合 "*"，中间件会自动回显 Origin
+  allow_credentials: false
 
 mysql:
   host: 127.0.0.1
@@ -36,3 +50,8 @@ redis:
 log:
   level: info
   file: logs/app.log
+  # 文件轮转：单个文件最大 MB、保留旧文件数、保留天数、是否压缩
+  max_size: 100
+  max_backups: 7
+  max_age: 30
+  compress: true

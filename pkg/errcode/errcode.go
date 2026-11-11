@@ -7,7 +7,9 @@ const (
 	CodeSuccess      = 0
 	CodeInvalidParam = 40000
 	CodeUnauthorized = 40100
+	CodeForbidden    = 40300
 	CodeNotFound     = 40400
+	CodeConflict     = 40900
 	CodeInternal     = 50000
 )
 

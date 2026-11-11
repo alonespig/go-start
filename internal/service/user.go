@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/alonespig/go-start/internal/model"
+	"github.com/alonespig/go-start/internal/repository"
+	"github.com/alonespig/go-start/pkg/cache"
+	"github.com/alonespig/go-start/pkg/errcode"
 	"github.com/redis/go-redis/v9"
-	"go-starter/internal/model"
-	"go-starter/internal/repository"
-	"go-starter/pkg/cache"
-	"go-starter/pkg/errcode"
 	"gorm.io/gorm"
 )
 
@@ -20,7 +20,7 @@ const (
 )
 
 type UserService interface {
-	Create(ctx context.Context, u *model.User) error
+	Create(ctx context.Context, u *model.User) (int64, error)
 	GetByID(ctx context.Context, id int64) (model.User, error)
 	List(ctx context.Context, page, size int) ([]model.User, int64, error)
 }
@@ -34,8 +34,16 @@ func NewUserService(repo repository.UserRepository, cache *redis.Client) UserSer
 	return &userService{repo: repo, cache: cache}
 }
 
-func (s *userService) Create(ctx context.Context, u *model.User) error {
-	return s.repo.Create(ctx, u)
+// Create 创建用户，返回新记录 ID。
+// 唯一键冲突（如邮箱重复）翻译成业务错误，避免把数据库异常透给调用方。
+func (s *userService) Create(ctx context.Context, u *model.User) (int64, error) {
+	if err := s.repo.Create(ctx, u); err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return 0, errcode.New(errcode.CodeConflict, "邮箱已存在")
+		}
+		return 0, err
+	}
+	return u.ID, nil
 }
 
 // GetByID 用泛型 cache-aside 工具：缓存命中直接返回，未命中查库并回填

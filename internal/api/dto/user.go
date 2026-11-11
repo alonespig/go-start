@@ -1,6 +1,6 @@
 package dto
 
-import "go-starter/internal/model"
+import "github.com/alonespig/go-start/internal/model"
 
 type CreateUserReq struct {
 	Name  string `json:"name" binding:"required,max=64"`

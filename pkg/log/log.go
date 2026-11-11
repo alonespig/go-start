@@ -4,9 +4,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"go-starter/config"
+	"github.com/alonespig/go-start/config"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 // init 在包被导入时自动用默认配置初始化全局 logger。
@@ -46,18 +47,21 @@ func build(cfg config.LogConfig) (*zap.Logger, error) {
 		level,
 	))
 
-	// 文件输出（可选）
+	// 文件输出（可选），按大小/时间自动轮转，避免日志无限增长
 	if cfg.File != "" {
 		if err := os.MkdirAll(filepath.Dir(cfg.File), 0o755); err != nil {
 			return nil, err
 		}
-		f, err := os.OpenFile(cfg.File, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
-		if err != nil {
-			return nil, err
+		writer := &lumberjack.Logger{
+			Filename:   cfg.File,
+			MaxSize:    cfg.MaxSize,    // MB
+			MaxBackups: cfg.MaxBackups, // 保留的旧文件数
+			MaxAge:     cfg.MaxAge,     // 天
+			Compress:   cfg.Compress,
 		}
 		cores = append(cores, zapcore.NewCore(
 			zapcore.NewJSONEncoder(encoderConfig),
-			zapcore.AddSync(f),
+			zapcore.AddSync(writer),
 			level,
 		))
 	}

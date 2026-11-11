@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"go-starter/pkg/log"
+	"github.com/alonespig/go-start/pkg/log"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"

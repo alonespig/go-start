@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"go-starter/internal/model"
+	"github.com/alonespig/go-start/internal/model"
 	"gorm.io/gorm"
 )
 
