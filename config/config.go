@@ -16,6 +16,7 @@ type Config struct {
 	Metrics     MetricsConfig     `mapstructure:"metrics"`
 	RateLimit   RateLimitConfig   `mapstructure:"rate_limit"`
 	Idempotency IdempotencyConfig `mapstructure:"idempotency"`
+	Kafka       KafkaConfig       `mapstructure:"kafka"`
 	MySQL       MySQLConfig       `mapstructure:"mysql"`
 	Redis       RedisConfig       `mapstructure:"redis"`
 	Log         LogConfig         `mapstructure:"log"`
@@ -79,6 +80,13 @@ type RateLimitConfig struct {
 type IdempotencyConfig struct {
 	Enabled bool          `mapstructure:"enabled"`
 	TTL     time.Duration `mapstructure:"ttl"`
+}
+
+// KafkaConfig 消息队列配置。默认关闭，按需启用后会装配 Producer/Consumer。
+type KafkaConfig struct {
+	Enabled bool     `mapstructure:"enabled"`
+	Brokers []string `mapstructure:"brokers"`
+	GroupID string   `mapstructure:"group_id"`
 }
 
 type MySQLConfig struct {
@@ -153,6 +161,9 @@ func Load(path string) (*Config, error) {
 	v.SetDefault("rate_limit.window", "1m")
 	v.SetDefault("idempotency.enabled", false)
 	v.SetDefault("idempotency.ttl", "24h")
+	v.SetDefault("kafka.enabled", false)
+	v.SetDefault("kafka.brokers", []string{})
+	v.SetDefault("kafka.group_id", "go-starter")
 	v.SetDefault("mysql.host", "127.0.0.1")
 	v.SetDefault("mysql.port", 3306)
 	v.SetDefault("mysql.max_idle_conns", 10)
@@ -231,6 +242,9 @@ func (c *Config) Validate() error {
 	}
 	if c.Idempotency.Enabled && c.Idempotency.TTL <= 0 {
 		return fmt.Errorf("idempotency.ttl 必须大于 0")
+	}
+	if c.Kafka.Enabled && len(c.Kafka.Brokers) == 0 {
+		return fmt.Errorf("kafka.enabled 为 true 时 kafka.brokers 不能为空")
 	}
 	if c.Log.MaxSize <= 0 {
 		return fmt.Errorf("log.max_size 必须大于 0")

@@ -42,8 +42,9 @@ go-starter/
     ├── service/             # 业务逻辑层
     ├── repository/          # 数据访问层
     ├── infra/               # 基础设施层
-    │   ├── db/              # GORM MySQL
-    │   └── redis/           # Redis
+    │   ├── db/              # GORM MySQL + goose 迁移
+    │   ├── redis/           # Redis
+    │   └── kafka/           # Kafka 生产/消费封装
     └── model/               # 数据模型
 ```
 
@@ -103,7 +104,7 @@ curl http://localhost:8080/health
 
 - 配置模板见 `config.example.yaml`，复制为 `config.yaml` 后使用；`config.yaml` 不提交。
 - 所有配置项都支持 `GO_STARTER_` 前缀的环境变量覆盖，例如 `GO_STARTER_MYSQL_PASSWORD`、`GO_STARTER_REDIS_ADDR`，优先级高于配置文件，适合容器和 CI 注入密码。
-- `server` 段控制超时、请求头/请求体大小、可信代理与优雅退出；`cors` 段控制跨域来源；`auth` 段控制 JWT 鉴权（`jwt_secret` 为空表示不启用）；`metrics` / `rate_limit` / `idempotency` 分别控制指标、限流和幂等；`log` 段控制级别、输出文件与轮转（`max_size` / `max_backups` / `max_age` / `compress`）。
+- `server` 段控制超时、请求头/请求体大小、可信代理与优雅退出；`cors` 段控制跨域来源；`auth` 段控制 JWT 鉴权（`jwt_secret` 为空表示不启用）；`metrics` / `rate_limit` / `idempotency` / `kafka` 分别控制指标、限流、幂等和消息队列；`log` 段控制级别、输出文件与轮转（`max_size` / `max_backups` / `max_age` / `compress`）。
 - 启动时做基础校验（端口、MySQL / Redis 必填项、超时值等），配置错误直接退出，不会带病运行。
 
 ## 接口示例

@@ -57,6 +57,12 @@ idempotency:
   enabled: false
   ttl: 24h
 
+kafka:
+  # 默认关闭；接入消息队列时打开并填写 brokers，Consumer 按 topic 创建
+  enabled: false
+  brokers: []
+  group_id: go-starter
+
 mysql:
   host: 127.0.0.1
   port: 3306

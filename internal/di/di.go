@@ -14,6 +14,7 @@ import (
 	"github.com/alonespig/go-start/internal/api/router"
 	"github.com/alonespig/go-start/internal/auth"
 	"github.com/alonespig/go-start/internal/infra/db"
+	kafka "github.com/alonespig/go-start/internal/infra/kafka"
 	"github.com/alonespig/go-start/internal/infra/metrics"
 	infraRedis "github.com/alonespig/go-start/internal/infra/redis"
 	"github.com/alonespig/go-start/internal/repository"
@@ -24,13 +25,14 @@ import (
 
 // Container 组合根：持有装配好的所有依赖
 type Container struct {
-	Config       *config.Config
-	DB           *gorm.DB
-	Redis        *redis.Client
-	Cache        cache.Cache
-	TxManager    *repository.TxManager
-	TokenService *auth.TokenService
-	Metrics      *metrics.Metrics
+	Config        *config.Config
+	DB            *gorm.DB
+	Redis         *redis.Client
+	Cache         cache.Cache
+	TxManager     *repository.TxManager
+	TokenService  *auth.TokenService
+	Metrics       *metrics.Metrics
+	KafkaProducer kafka.Producer
 
 	UserService service.UserService
 	Router      *gin.Engine
@@ -82,6 +84,15 @@ func Build(cfg *config.Config) (*Container, error) {
 		userCache = infraRedis.NewCache(rdb)
 	}
 
+	// Kafka 可选：默认关闭，开启后提供 Producer，Consumer 按 topic 创建
+	var kafkaProducer kafka.Producer
+	if cfg.Kafka.Enabled {
+		kafkaProducer, err = kafka.NewProducer(cfg.Kafka)
+		if err != nil {
+			return nil, fmt.Errorf("初始化 kafka 失败: %w", err)
+		}
+	}
+
 	// 3. repository（注入连接，返回接口）
 	userRepo := repository.NewUserRepository(gdb)
 	txManager := repository.NewTxManager(gdb)
@@ -120,15 +131,16 @@ func Build(cfg *config.Config) (*Container, error) {
 	}
 
 	return &Container{
-		Config:       cfg,
-		DB:           gdb,
-		Redis:        rdb,
-		Cache:        userCache,
-		TxManager:    txManager,
-		TokenService: tokenSvc,
-		Metrics:      appMetrics,
-		UserService:  userSvc,
-		Router:       r,
+		Config:        cfg,
+		DB:            gdb,
+		Redis:         rdb,
+		Cache:         userCache,
+		TxManager:     txManager,
+		TokenService:  tokenSvc,
+		Metrics:       appMetrics,
+		KafkaProducer: kafkaProducer,
+		UserService:   userSvc,
+		Router:        r,
 	}, nil
 }
 
@@ -141,5 +153,8 @@ func (c *Container) Close() {
 	}
 	if c.Redis != nil {
 		_ = c.Redis.Close()
+	}
+	if c.KafkaProducer != nil {
+		_ = c.KafkaProducer.Close()
 	}
 }

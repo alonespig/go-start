@@ -36,6 +36,11 @@ idempotency:
   enabled: false
   ttl: 24h
 
+kafka:
+  enabled: false
+  brokers: []
+  group_id: go-starter
+
 mysql:
   host: mysql
   port: 3306
