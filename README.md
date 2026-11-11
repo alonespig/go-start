@@ -10,6 +10,10 @@
 - CLI / 配置：[Cobra](https://github.com/spf13/cobra) + [Viper](https://github.com/spf13/viper)
 - 日志：[Zap](https://github.com/uber-go/zap)
 - 定时任务：[robfig/cron](https://github.com/robfig/cron)
+- 鉴权：JWT（golang-jwt）
+- 可观测性：Prometheus + Zap
+- 数据库迁移：goose（SQL 迁移内嵌进二进制）
+- 消息队列：Kafka（kafka-go，默认关闭，基建已就绪）
 
 ## 目录结构
 
@@ -18,6 +22,8 @@ go-starter/
 ├── main.go                  # 入口：注册校验规则 → cmd.Execute()
 ├── config.example.yaml      # 配置模板（复制为 config.yaml 后使用）
 ├── config.yaml              # 本地配置，已被 gitignore，不提交
+├── docs/                    # OpenAPI 文档
+├── .golangci.yml            # lint 配置
 ├── cmd/                     # Cobra 命令层（每个命令一种进程角色）
 │   ├── root.go
 │   ├── serve.go             # HTTP 服务
@@ -140,6 +146,9 @@ curl http://localhost:8080/health
 7. `di/di.go` 的 `Build` 里按顺序装配。
 8. `internal/infra/db/migrations/` 加版本化 SQL 迁移（`goose`），本地跑 `make migrate`。
 
+> 新领域建议按模块切：`internal/modules/<domain>/{handler,service,repository,dto,model}.go`，
+> 避免所有业务继续堆在全局 layer；现有 user 模块保持分层结构即可，后续可逐步迁移。
+
 ## 注意事项
 
 - 参数校验用 `pkg/validation.FormatError` + `response.FailWithData`，错误明细放在 `data` 字段；不要直接把 validator 的英文原文返回给前端。
@@ -152,6 +161,8 @@ curl http://localhost:8080/health
 - 可观测性：`/metrics` 暴露 HTTP 请求量/耗时/在途数与数据库连接池指标；日志带 `request_id`，可直接接到 Prometheus + Grafana / Loki。
 - 安全：统一安全响应头、请求体大小限制、可选 Redis 限流；写接口带 `Idempotency-Key` 时启用幂等重放，避免重复提交。
 - 模块路径为 `github.com/alonespig/go-start`，迁移到其他仓库时同步修改 `go.mod` 与 import 路径即可。
+- 接口文档见 `docs/openapi.yaml`；改动接口时同步更新，便于前端联调和生成 SDK。
+- `make lint` 依赖 golangci-lint v2+ 且其构建 Go 版本不低于 1.26；CI 已配置 lint job。
 
 ## Docker 部署
 

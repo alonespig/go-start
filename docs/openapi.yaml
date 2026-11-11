@@ -1,0 +1,214 @@
+openapi: 3.0.3
+info:
+  title: go-starter API
+  version: 0.1.0
+  description: |
+    通用后端脚手架 API。所有业务接口使用统一响应信封：
+    `{ "code": 0, "message": "ok", "data": ... }`，成功时 code 为 0，
+    失败时 code 为业务错误码（40000 参数错误、40100 未登录、40400 不存在、
+    40900 冲突、42900 限流、50000 内部错误）。
+servers:
+  - url: http://localhost:8080
+tags:
+  - name: system
+  - name: users
+  - name: auth
+paths:
+  /health:
+    get:
+      tags: [system]
+      summary: 存活探针
+      responses:
+        "200":
+          description: 进程存活
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response"
+  /ready:
+    get:
+      tags: [system]
+      summary: 就绪探针（检查 MySQL / Redis）
+      responses:
+        "200":
+          description: 依赖正常
+        "503":
+          description: 依赖不可用
+  /metrics:
+    get:
+      tags: [system]
+      summary: Prometheus 指标
+      responses:
+        "200":
+          description: Prometheus 文本格式
+          content:
+            text/plain:
+              schema:
+                type: string
+  /api/v1/users:
+    get:
+      tags: [users]
+      summary: 用户列表
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: size
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+      responses:
+        "200":
+          description: 分页结果
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Response"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/PageData"
+    post:
+      tags: [users]
+      summary: 创建用户
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserReq"
+      responses:
+        "200":
+          description: 创建成功，data.id 为新用户 ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response"
+  /api/v1/users/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer, format: int64, minimum: 1 }
+    get:
+      tags: [users]
+      summary: 查询用户（带缓存）
+      responses:
+        "200":
+          description: 用户信息
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Response"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/User"
+    put:
+      tags: [users]
+      summary: 更新用户（只更新传入的字段）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserReq"
+      responses:
+        "200":
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response"
+    delete:
+      tags: [users]
+      summary: 删除用户
+      responses:
+        "200":
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response"
+  /api/v1/me:
+    get:
+      tags: [auth]
+      summary: 当前 token 身份（启用鉴权后可用）
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: 当前用户身份
+        "401":
+          description: 未登录或 token 失效
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Response:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: ok
+        data:
+          nullable: true
+    PageData:
+      type: object
+      properties:
+        list:
+          type: array
+          items:
+            $ref: "#/components/schemas/User"
+        total:
+          type: integer
+          format: int64
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        age:
+          type: integer
+    CreateUserReq:
+      type: object
+      required: [name, email]
+      properties:
+        name:
+          type: string
+          maxLength: 64
+        email:
+          type: string
+          format: email
+          maxLength: 128
+        age:
+          type: integer
+          minimum: 0
+          maximum: 200
+    UpdateUserReq:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 64
+        email:
+          type: string
+          format: email
+          maxLength: 128
+        age:
+          type: integer
+          minimum: 0
+          maximum: 200

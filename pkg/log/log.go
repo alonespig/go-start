@@ -23,9 +23,7 @@ type Options struct {
 // init 在包被导入时自动用默认配置初始化全局 logger。
 // 保证任何地方 import 本包即可直接打日志，即使忘了调 Init 也不会静默丢日志。
 func init() {
-	if logger, err := build(Options{Level: "info"}); err == nil {
-		zap.ReplaceGlobals(logger)
-	}
+	_ = Init(Options{Level: "info"})
 }
 
 // Init 用自定义配置（如 config.yaml 的 log 段）重新初始化全局 logger。
