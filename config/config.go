@@ -9,13 +9,16 @@ import (
 )
 
 type Config struct {
-	App    AppConfig    `mapstructure:"app"`
-	Server ServerConfig `mapstructure:"server"`
-	CORS   CORSConfig   `mapstructure:"cors"`
-	Auth   AuthConfig   `mapstructure:"auth"`
-	MySQL  MySQLConfig  `mapstructure:"mysql"`
-	Redis  RedisConfig  `mapstructure:"redis"`
-	Log    LogConfig    `mapstructure:"log"`
+	App         AppConfig         `mapstructure:"app"`
+	Server      ServerConfig      `mapstructure:"server"`
+	CORS        CORSConfig        `mapstructure:"cors"`
+	Auth        AuthConfig        `mapstructure:"auth"`
+	Metrics     MetricsConfig     `mapstructure:"metrics"`
+	RateLimit   RateLimitConfig   `mapstructure:"rate_limit"`
+	Idempotency IdempotencyConfig `mapstructure:"idempotency"`
+	MySQL       MySQLConfig       `mapstructure:"mysql"`
+	Redis       RedisConfig       `mapstructure:"redis"`
+	Log         LogConfig         `mapstructure:"log"`
 }
 
 type AppConfig struct {
@@ -33,6 +36,7 @@ type ServerConfig struct {
 	IdleTimeout       time.Duration `mapstructure:"idle_timeout"`
 	ShutdownTimeout   time.Duration `mapstructure:"shutdown_timeout"`
 	MaxHeaderBytes    int           `mapstructure:"max_header_bytes"`
+	MaxBodyBytes      int64         `mapstructure:"max_body_bytes"`
 	// TrustedProxies 为可信代理 CIDR；留空表示不信任任何 X-Forwarded-For，
 	// 避免客户端伪造 IP。部署在 nginx / 负载均衡后面时填写其网段。
 	TrustedProxies []string `mapstructure:"trusted_proxies"`
@@ -56,6 +60,25 @@ type AuthConfig struct {
 // Enabled 是否启用鉴权
 func (a AuthConfig) Enabled() bool {
 	return a.JWTSecret != ""
+}
+
+// MetricsConfig Prometheus 指标配置
+type MetricsConfig struct {
+	Enabled bool   `mapstructure:"enabled"`
+	Path    string `mapstructure:"path"`
+}
+
+// RateLimitConfig 固定窗口限流配置（依赖 Redis；Redis 不可用时放行）
+type RateLimitConfig struct {
+	Enabled  bool          `mapstructure:"enabled"`
+	Requests int           `mapstructure:"requests"`
+	Window   time.Duration `mapstructure:"window"`
+}
+
+// IdempotencyConfig 幂等键配置：客户端带 Idempotency-Key 时生效
+type IdempotencyConfig struct {
+	Enabled bool          `mapstructure:"enabled"`
+	TTL     time.Duration `mapstructure:"ttl"`
 }
 
 type MySQLConfig struct {
@@ -116,12 +139,20 @@ func Load(path string) (*Config, error) {
 	v.SetDefault("server.idle_timeout", "120s")
 	v.SetDefault("server.shutdown_timeout", "10s")
 	v.SetDefault("server.max_header_bytes", 1<<20)
+	v.SetDefault("server.max_body_bytes", 4<<20)
 	v.SetDefault("server.trusted_proxies", []string{})
 	v.SetDefault("cors.allowed_origins", []string{"*"})
 	v.SetDefault("cors.allow_credentials", false)
 	v.SetDefault("auth.jwt_secret", "")
 	v.SetDefault("auth.jwt_expire", "24h")
 	v.SetDefault("auth.jwt_issuer", "go-starter")
+	v.SetDefault("metrics.enabled", true)
+	v.SetDefault("metrics.path", "/metrics")
+	v.SetDefault("rate_limit.enabled", false)
+	v.SetDefault("rate_limit.requests", 100)
+	v.SetDefault("rate_limit.window", "1m")
+	v.SetDefault("idempotency.enabled", false)
+	v.SetDefault("idempotency.ttl", "24h")
 	v.SetDefault("mysql.host", "127.0.0.1")
 	v.SetDefault("mysql.port", 3306)
 	v.SetDefault("mysql.max_idle_conns", 10)
@@ -186,6 +217,20 @@ func (c *Config) Validate() error {
 	}
 	if c.Server.ShutdownTimeout <= 0 {
 		return fmt.Errorf("server.shutdown_timeout 必须大于 0")
+	}
+	if c.Server.MaxBodyBytes <= 0 {
+		return fmt.Errorf("server.max_body_bytes 必须大于 0")
+	}
+	if c.Metrics.Enabled && (c.Metrics.Path == "" || c.Metrics.Path[0] != '/') {
+		return fmt.Errorf("metrics.path 必须以 / 开头")
+	}
+	if c.RateLimit.Enabled {
+		if c.RateLimit.Requests <= 0 || c.RateLimit.Window <= 0 {
+			return fmt.Errorf("rate_limit.requests 和 rate_limit.window 必须大于 0")
+		}
+	}
+	if c.Idempotency.Enabled && c.Idempotency.TTL <= 0 {
+		return fmt.Errorf("idempotency.ttl 必须大于 0")
 	}
 	if c.Log.MaxSize <= 0 {
 		return fmt.Errorf("log.max_size 必须大于 0")

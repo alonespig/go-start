@@ -14,6 +14,7 @@ import (
 	"github.com/alonespig/go-start/internal/api/router"
 	"github.com/alonespig/go-start/internal/auth"
 	"github.com/alonespig/go-start/internal/infra/db"
+	"github.com/alonespig/go-start/internal/infra/metrics"
 	infraRedis "github.com/alonespig/go-start/internal/infra/redis"
 	"github.com/alonespig/go-start/internal/repository"
 	"github.com/alonespig/go-start/internal/service"
@@ -29,6 +30,7 @@ type Container struct {
 	Cache        cache.Cache
 	TxManager    *repository.TxManager
 	TokenService *auth.TokenService
+	Metrics      *metrics.Metrics
 
 	UserService service.UserService
 	Router      *gin.Engine
@@ -57,6 +59,15 @@ func Build(cfg *config.Config) (*Container, error) {
 	gdb, err := db.New(cfg.MySQL)
 	if err != nil {
 		return nil, err
+	}
+
+	// 指标（可选）：注册 HTTP 与数据库连接池指标
+	var appMetrics *metrics.Metrics
+	if cfg.Metrics.Enabled {
+		appMetrics = metrics.New()
+		if sqlDB, err := gdb.DB(); err == nil {
+			appMetrics.RegisterDBStats(sqlDB)
+		}
 	}
 
 	// Redis 可选：连不上只告警，降级为无缓存（GetByID 自动退化查库）
@@ -101,6 +112,8 @@ func Build(cfg *config.Config) (*Container, error) {
 		User:           userHandler,
 		Auth:           authHandler,
 		AuthMiddleware: authMW,
+		Metrics:        appMetrics,
+		Redis:          rdb,
 	})
 	if err != nil {
 		return nil, err
@@ -113,6 +126,7 @@ func Build(cfg *config.Config) (*Container, error) {
 		Cache:        userCache,
 		TxManager:    txManager,
 		TokenService: tokenSvc,
+		Metrics:      appMetrics,
 		UserService:  userSvc,
 		Router:       r,
 	}, nil

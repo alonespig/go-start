@@ -11,6 +11,7 @@ server:
   idle_timeout: 120s
   shutdown_timeout: 10s
   max_header_bytes: 1048576
+  max_body_bytes: 4194304
   trusted_proxies: []
 
 cors:
@@ -21,6 +22,19 @@ auth:
   jwt_secret: ""   # 生产通过 GO_STARTER_AUTH_JWT_SECRET 注入
   jwt_expire: 24h
   jwt_issuer: go-starter
+
+metrics:
+  enabled: true
+  path: /metrics
+
+rate_limit:
+  enabled: false
+  requests: 100
+  window: 1m
+
+idempotency:
+  enabled: false
+  ttl: 24h
 
 mysql:
   host: mysql

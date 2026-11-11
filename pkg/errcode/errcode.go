@@ -4,13 +4,14 @@ import "fmt"
 
 // 业务错误码（0 表示成功）
 const (
-	CodeSuccess      = 0
-	CodeInvalidParam = 40000
-	CodeUnauthorized = 40100
-	CodeForbidden    = 40300
-	CodeNotFound     = 40400
-	CodeConflict     = 40900
-	CodeInternal     = 50000
+	CodeSuccess         = 0
+	CodeInvalidParam    = 40000
+	CodeUnauthorized    = 40100
+	CodeForbidden       = 40300
+	CodeNotFound        = 40400
+	CodeConflict        = 40900
+	CodeTooManyRequests = 42900
+	CodeInternal        = 50000
 )
 
 // BizError 业务错误：service/repository 层返回它，handler 层翻译成响应。

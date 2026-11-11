@@ -4,10 +4,13 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/redis/go-redis/v9"
 
 	"github.com/alonespig/go-start/config"
 	"github.com/alonespig/go-start/internal/api/handler"
 	"github.com/alonespig/go-start/internal/api/middleware"
+	"github.com/alonespig/go-start/internal/infra/metrics"
 )
 
 // Deps 路由依赖；Auth 为 nil 时不注册受保护路由
@@ -17,6 +20,8 @@ type Deps struct {
 	User           *handler.UserHandler
 	Auth           *handler.AuthHandler
 	AuthMiddleware gin.HandlerFunc
+	Metrics        *metrics.Metrics
+	Redis          *redis.Client
 }
 
 // New 组装路由
@@ -28,16 +33,38 @@ func New(d Deps) (*gin.Engine, error) {
 		return nil, fmt.Errorf("server.trusted_proxies 配置非法: %w", err)
 	}
 
-	r.Use(
+	handlers := []gin.HandlerFunc{
 		middleware.RequestID(),
 		middleware.Logger(),
 		middleware.Recovery(),
 		middleware.CORS(d.Config.CORS),
-	)
+		middleware.SecurityHeaders(),
+		middleware.BodyLimit(d.Config.Server.MaxBodyBytes),
+	}
+	if d.Metrics != nil {
+		handlers = append(handlers, middleware.Metrics(d.Metrics))
+	}
+	if d.Config.RateLimit.Enabled {
+		handlers = append(handlers, middleware.RateLimit(
+			d.Redis, d.Config.RateLimit.Requests, d.Config.RateLimit.Window))
+	}
+	if d.Config.Idempotency.Enabled {
+		handlers = append(handlers, middleware.Idempotency(d.Redis, d.Config.Idempotency.TTL))
+	}
+	r.Use(handlers...)
 
 	// 探针：/health 存活，/ready 检查依赖
 	r.GET("/health", d.Health.Check)
 	r.GET("/ready", d.Health.Ready)
+
+	// Prometheus 指标
+	if d.Metrics != nil && d.Config.Metrics.Enabled {
+		path := d.Config.Metrics.Path
+		if path == "" {
+			path = "/metrics"
+		}
+		r.GET(path, gin.WrapH(promhttp.Handler()))
+	}
 
 	// 业务路由（版本化，便于后续并行维护 v2）
 	api := r.Group("/api/v1")

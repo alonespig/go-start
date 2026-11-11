@@ -23,6 +23,8 @@ server:
   shutdown_timeout: 10s
   # 请求头大小上限（字节）
   max_header_bytes: 1048576
+  # 请求体大小上限（字节）
+  max_body_bytes: 4194304
   # 可信代理 CIDR；留空表示不信任 X-Forwarded-For，ClientIP 取直连地址
   # 部署在 nginx / 负载均衡后时填写其网段，例如 ["10.0.0.0/8"]
   trusted_proxies: []
@@ -39,6 +41,21 @@ auth:
   jwt_secret: ""
   jwt_expire: 24h
   jwt_issuer: go-starter
+
+metrics:
+  enabled: true
+  path: /metrics
+
+rate_limit:
+  # 按 路由 + 客户端 IP 的固定窗口限流；Redis 不可用时自动放行
+  enabled: false
+  requests: 100
+  window: 1m
+
+idempotency:
+  # 客户端带 Idempotency-Key 时生效，写请求结果会缓存并在重试时重放
+  enabled: false
+  ttl: 24h
 
 mysql:
   host: 127.0.0.1

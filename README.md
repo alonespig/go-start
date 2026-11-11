@@ -100,7 +100,7 @@ curl http://localhost:8080/health
 
 - 配置模板见 `config.example.yaml`，复制为 `config.yaml` 后使用；`config.yaml` 不提交。
 - 所有配置项都支持 `GO_STARTER_` 前缀的环境变量覆盖，例如 `GO_STARTER_MYSQL_PASSWORD`、`GO_STARTER_REDIS_ADDR`，优先级高于配置文件，适合容器和 CI 注入密码。
-- `server` 段控制超时、请求头大小、可信代理与优雅退出；`cors` 段控制跨域来源；`auth` 段控制 JWT 鉴权（`jwt_secret` 为空表示不启用）；`log` 段控制级别、输出文件与轮转（`max_size` / `max_backups` / `max_age` / `compress`）。
+- `server` 段控制超时、请求头/请求体大小、可信代理与优雅退出；`cors` 段控制跨域来源；`auth` 段控制 JWT 鉴权（`jwt_secret` 为空表示不启用）；`metrics` / `rate_limit` / `idempotency` 分别控制指标、限流和幂等；`log` 段控制级别、输出文件与轮转（`max_size` / `max_backups` / `max_age` / `compress`）。
 - 启动时做基础校验（端口、MySQL / Redis 必填项、超时值等），配置错误直接退出，不会带病运行。
 
 ## 接口示例
@@ -115,6 +115,7 @@ curl http://localhost:8080/health
 | DELETE | `/api/v1/users/:id` | 删除用户（成功后失效缓存） |
 | GET | `/api/v1/users?page=1&size=10` | 用户列表（分页） |
 | GET | `/api/v1/me` | 当前 token 身份（启用鉴权后注册） |
+| GET | `/metrics` | Prometheus 指标 |
 
 统一响应格式：
 
@@ -144,6 +145,8 @@ curl http://localhost:8080/health
 - 优雅退出最多等 `server.shutdown_timeout`（默认 10s）：SSE 是活跃请求，`Shutdown` 会一直等到超时，需要在退出时主动通知 SSE handler 关闭；WebSocket 连接被 hijack 后不受 `Shutdown` 管理，需要自己记录并在退出时关闭。
 - Redis 目前定位为缓存（cache-aside 模式），需要分布式锁/计数器时再单独封装。
 - 鉴权：`internal/auth.TokenService` 负责签发/校验 JWT，`middleware.Auth` 负责解析 `Authorization: Bearer`，claims 会放进 gin.Context 和 request context。接入登录接口时复用 `TokenService.Issue` 即可。
+- 可观测性：`/metrics` 暴露 HTTP 请求量/耗时/在途数与数据库连接池指标；日志带 `request_id`，可直接接到 Prometheus + Grafana / Loki。
+- 安全：统一安全响应头、请求体大小限制、可选 Redis 限流；写接口带 `Idempotency-Key` 时启用幂等重放，避免重复提交。
 - 模块路径为 `github.com/alonespig/go-start`，迁移到其他仓库时同步修改 `go.mod` 与 import 路径即可。
 
 ## Docker 部署
