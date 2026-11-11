@@ -81,7 +81,10 @@ curl http://localhost:8080/health
 | --- | --- |
 | `go run . serve` | 启动 HTTP 服务 |
 | `go run . cron` | 启动定时任务调度器 |
-| `go run . migrate` | 执行数据库迁移 |
+| `go run . migrate` | 执行版本化数据库迁移 |
+| `go run . migrate --status` | 查看迁移状态 |
+| `go run . migrate --down` | 回滚最近一次迁移 |
+| `go run . seed` | 写入开发用示例数据 |
 | `go run . version` | 打印版本号 |
 
 通用参数：`--config` 指定配置文件路径（默认 `config.yaml`）。
@@ -134,7 +137,7 @@ curl http://localhost:8080/health
 5. `api/handler/` 加 handler（`NewXxxHandler`）。
 6. `api/router/` 注册路由。
 7. `di/di.go` 的 `Build` 里按顺序装配。
-8. `cmd/migrate.go` 里把新 model 加入 `AutoMigrate`。
+8. `internal/infra/db/migrations/` 加版本化 SQL 迁移（`goose`），本地跑 `make migrate`。
 
 ## 注意事项
 

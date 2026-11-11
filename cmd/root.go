@@ -35,5 +35,5 @@ func loadConfig() (*config.Config, error) {
 
 func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "config.yaml", "配置文件路径")
-	rootCmd.AddCommand(serveCmd, cronCmd, migrateCmd, versionCmd)
+	rootCmd.AddCommand(serveCmd, cronCmd, migrateCmd, seedCmd, versionCmd)
 }
