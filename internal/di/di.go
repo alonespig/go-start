@@ -1,6 +1,8 @@
 package di
 
 import (
+	"fmt"
+
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
@@ -8,7 +10,9 @@ import (
 
 	"github.com/alonespig/go-start/config"
 	"github.com/alonespig/go-start/internal/api/handler"
+	"github.com/alonespig/go-start/internal/api/middleware"
 	"github.com/alonespig/go-start/internal/api/router"
+	"github.com/alonespig/go-start/internal/auth"
 	"github.com/alonespig/go-start/internal/infra/db"
 	infraRedis "github.com/alonespig/go-start/internal/infra/redis"
 	"github.com/alonespig/go-start/internal/repository"
@@ -19,11 +23,12 @@ import (
 
 // Container 组合根：持有装配好的所有依赖
 type Container struct {
-	Config    *config.Config
-	DB        *gorm.DB
-	Redis     *redis.Client
-	Cache     cache.Cache
-	TxManager *repository.TxManager
+	Config       *config.Config
+	DB           *gorm.DB
+	Redis        *redis.Client
+	Cache        cache.Cache
+	TxManager    *repository.TxManager
+	TokenService *auth.TokenService
 
 	UserService service.UserService
 	Router      *gin.Engine
@@ -73,24 +78,43 @@ func Build(cfg *config.Config) (*Container, error) {
 	// 4. service（注入 repository，返回接口）
 	userSvc := service.NewUserService(userRepo, userCache)
 
-	// 5. handler（注入 service / 依赖，供探针使用）
+	// 5. 鉴权（可选）：配置了 jwt_secret 才启用，并注册受保护路由
+	var tokenSvc *auth.TokenService
+	var authMW gin.HandlerFunc
+	if cfg.Auth.Enabled() {
+		tokenSvc, err = auth.NewTokenService(cfg.Auth.JWTSecret, cfg.Auth.JWTIssuer, cfg.Auth.JWTExpire)
+		if err != nil {
+			return nil, fmt.Errorf("初始化鉴权失败: %w", err)
+		}
+		authMW = middleware.Auth(tokenSvc)
+	}
+
+	// 6. handler（注入 service / 依赖，供探针使用）
 	healthHandler := handler.NewHealthHandler(gdb, rdb)
 	userHandler := handler.NewUserHandler(userSvc)
+	authHandler := handler.NewAuthHandler()
 
-	// 6. router（注入配置与 handler；logger 走全局，不再传）
-	r, err := router.New(cfg, healthHandler, userHandler)
+	// 7. router（注入配置与 handler；logger 走全局，不再传）
+	r, err := router.New(router.Deps{
+		Config:         cfg,
+		Health:         healthHandler,
+		User:           userHandler,
+		Auth:           authHandler,
+		AuthMiddleware: authMW,
+	})
 	if err != nil {
 		return nil, err
 	}
 
 	return &Container{
-		Config:      cfg,
-		DB:          gdb,
-		Redis:       rdb,
-		Cache:       userCache,
-		TxManager:   txManager,
-		UserService: userSvc,
-		Router:      r,
+		Config:       cfg,
+		DB:           gdb,
+		Redis:        rdb,
+		Cache:        userCache,
+		TxManager:    txManager,
+		TokenService: tokenSvc,
+		UserService:  userSvc,
+		Router:       r,
 	}, nil
 }
 

@@ -17,6 +17,11 @@ cors:
   allowed_origins: ["*"]
   allow_credentials: false
 
+auth:
+  jwt_secret: ""   # 生产通过 GO_STARTER_AUTH_JWT_SECRET 注入
+  jwt_expire: 24h
+  jwt_issuer: go-starter
+
 mysql:
   host: mysql
   port: 3306

@@ -10,12 +10,21 @@ import (
 	"github.com/alonespig/go-start/internal/api/middleware"
 )
 
-// New 组装路由，注入配置与 handler
-func New(cfg *config.Config, health *handler.HealthHandler, user *handler.UserHandler) (*gin.Engine, error) {
+// Deps 路由依赖；Auth 为 nil 时不注册受保护路由
+type Deps struct {
+	Config         *config.Config
+	Health         *handler.HealthHandler
+	User           *handler.UserHandler
+	Auth           *handler.AuthHandler
+	AuthMiddleware gin.HandlerFunc
+}
+
+// New 组装路由
+func New(d Deps) (*gin.Engine, error) {
 	r := gin.New()
 
 	// 不信任任何代理头（nil / 空列表）时，ClientIP 取直连地址，避免伪造 X-Forwarded-For
-	if err := r.SetTrustedProxies(cfg.Server.TrustedProxies); err != nil {
+	if err := r.SetTrustedProxies(d.Config.Server.TrustedProxies); err != nil {
 		return nil, fmt.Errorf("server.trusted_proxies 配置非法: %w", err)
 	}
 
@@ -23,23 +32,31 @@ func New(cfg *config.Config, health *handler.HealthHandler, user *handler.UserHa
 		middleware.RequestID(),
 		middleware.Logger(),
 		middleware.Recovery(),
-		middleware.CORS(cfg.CORS),
+		middleware.CORS(d.Config.CORS),
 	)
 
 	// 探针：/health 存活，/ready 检查依赖
-	r.GET("/health", health.Check)
-	r.GET("/ready", health.Ready)
+	r.GET("/health", d.Health.Check)
+	r.GET("/ready", d.Health.Ready)
 
 	// 业务路由（版本化，便于后续并行维护 v2）
 	api := r.Group("/api/v1")
 	{
 		users := api.Group("/users")
 		{
-			users.POST("", user.Create)
-			users.GET("/:id", user.Get)
-			users.PUT("/:id", user.Update)
-			users.DELETE("/:id", user.Delete)
-			users.GET("", user.List)
+			users.POST("", d.User.Create)
+			users.GET("/:id", d.User.Get)
+			users.PUT("/:id", d.User.Update)
+			users.DELETE("/:id", d.User.Delete)
+			users.GET("", d.User.List)
+		}
+	}
+
+	// 受保护路由：启用鉴权时才注册
+	if d.AuthMiddleware != nil && d.Auth != nil {
+		authed := api.Group("", d.AuthMiddleware)
+		{
+			authed.GET("/me", d.Auth.Me)
 		}
 	}
 	return r, nil

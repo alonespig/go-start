@@ -12,6 +12,7 @@ type Config struct {
 	App    AppConfig    `mapstructure:"app"`
 	Server ServerConfig `mapstructure:"server"`
 	CORS   CORSConfig   `mapstructure:"cors"`
+	Auth   AuthConfig   `mapstructure:"auth"`
 	MySQL  MySQLConfig  `mapstructure:"mysql"`
 	Redis  RedisConfig  `mapstructure:"redis"`
 	Log    LogConfig    `mapstructure:"log"`
@@ -42,6 +43,19 @@ type ServerConfig struct {
 type CORSConfig struct {
 	AllowedOrigins   []string `mapstructure:"allowed_origins"`
 	AllowCredentials bool     `mapstructure:"allow_credentials"`
+}
+
+// AuthConfig JWT 鉴权配置。JWTSecret 为空表示不启用鉴权，
+// 生产环境建议通过 GO_STARTER_AUTH_JWT_SECRET 注入，不要写进仓库。
+type AuthConfig struct {
+	JWTSecret string        `mapstructure:"jwt_secret"`
+	JWTExpire time.Duration `mapstructure:"jwt_expire"`
+	JWTIssuer string        `mapstructure:"jwt_issuer"`
+}
+
+// Enabled 是否启用鉴权
+func (a AuthConfig) Enabled() bool {
+	return a.JWTSecret != ""
 }
 
 type MySQLConfig struct {
@@ -105,6 +119,9 @@ func Load(path string) (*Config, error) {
 	v.SetDefault("server.trusted_proxies", []string{})
 	v.SetDefault("cors.allowed_origins", []string{"*"})
 	v.SetDefault("cors.allow_credentials", false)
+	v.SetDefault("auth.jwt_secret", "")
+	v.SetDefault("auth.jwt_expire", "24h")
+	v.SetDefault("auth.jwt_issuer", "go-starter")
 	v.SetDefault("mysql.host", "127.0.0.1")
 	v.SetDefault("mysql.port", 3306)
 	v.SetDefault("mysql.max_idle_conns", 10)
@@ -157,6 +174,12 @@ func (c *Config) Validate() error {
 	}
 	if c.Redis.Addr == "" {
 		return fmt.Errorf("redis.addr 不能为空")
+	}
+	if c.Auth.JWTSecret != "" && len(c.Auth.JWTSecret) < 16 {
+		return fmt.Errorf("auth.jwt_secret 至少 16 个字符")
+	}
+	if c.Auth.JWTExpire <= 0 {
+		return fmt.Errorf("auth.jwt_expire 必须大于 0")
 	}
 	if c.Server.ReadHeaderTimeout <= 0 {
 		return fmt.Errorf("server.read_header_timeout 必须大于 0")

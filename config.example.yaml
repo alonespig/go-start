@@ -33,6 +33,13 @@ cors:
   # 允许携带 Cookie / Authorization 时不能配合 "*"，中间件会自动回显 Origin
   allow_credentials: false
 
+auth:
+  # 为空表示不启用 JWT 鉴权；启用时至少 16 个字符
+  # 生产环境建议用 GO_STARTER_AUTH_JWT_SECRET 注入，不要写进仓库
+  jwt_secret: ""
+  jwt_expire: 24h
+  jwt_issuer: go-starter
+
 mysql:
   host: 127.0.0.1
   port: 3306
