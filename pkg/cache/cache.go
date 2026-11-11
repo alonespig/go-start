@@ -2,36 +2,42 @@ package cache
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
-	"github.com/redis/go-redis/v9"
+	"golang.org/x/sync/singleflight"
 )
 
-// GetOrSet 泛型 cache-aside：先查缓存，未命中则回源加载并回填缓存。
-// loader 返回 (T, error)，T 为值类型；rdb 为 nil 时退化为直接回源（不缓存）。
-func GetOrSet[T any](ctx context.Context, rdb *redis.Client, key string, ttl time.Duration, loader func() (T, error)) (T, error) {
-	// 1. 查缓存
-	if rdb != nil {
-		if data, err := rdb.Get(ctx, key).Bytes(); err == nil {
-			var v T
-			if json.Unmarshal(data, &v) == nil {
-				return v, nil
-			}
+// Cache 缓存抽象：便于在 Redis、进程内内存之间切换，也方便单测替换。
+type Cache interface {
+	Get(ctx context.Context, key string, dest any) (bool, error)
+	Set(ctx context.Context, key string, value any, ttl time.Duration) error
+	Delete(ctx context.Context, keys ...string) error
+}
+
+var flight singleflight.Group
+
+// GetOrSet 泛型 cache-aside：先查缓存，未命中则回源加载并回填。
+// 同一 key 的并发回源通过 singleflight 合并，避免缓存击穿。
+// c 为 nil 时退化为直接回源。
+func GetOrSet[T any](ctx context.Context, c Cache, key string, ttl time.Duration, loader func() (T, error)) (T, error) {
+	if c != nil {
+		var v T
+		if ok, err := c.Get(ctx, key, &v); err == nil && ok {
+			return v, nil
 		}
 	}
 
-	// 2. 回源加载
-	v, err := loader()
+	loaded, err, _ := flight.Do(key, func() (any, error) {
+		return loader()
+	})
 	if err != nil {
-		return v, err
+		var zero T
+		return zero, err
 	}
+	v := loaded.(T)
 
-	// 3. 回填缓存
-	if rdb != nil {
-		if data, err := json.Marshal(v); err == nil {
-			_ = rdb.Set(ctx, key, data, ttl).Err()
-		}
+	if c != nil {
+		_ = c.Set(ctx, key, v, ttl)
 	}
 	return v, nil
 }

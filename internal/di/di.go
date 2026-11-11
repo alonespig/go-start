@@ -13,14 +13,17 @@ import (
 	infraRedis "github.com/alonespig/go-start/internal/infra/redis"
 	"github.com/alonespig/go-start/internal/repository"
 	"github.com/alonespig/go-start/internal/service"
+	"github.com/alonespig/go-start/pkg/cache"
 	"github.com/alonespig/go-start/pkg/log"
 )
 
 // Container 组合根：持有装配好的所有依赖
 type Container struct {
-	Config *config.Config
-	DB     *gorm.DB
-	Redis  *redis.Client
+	Config    *config.Config
+	DB        *gorm.DB
+	Redis     *redis.Client
+	Cache     cache.Cache
+	TxManager *repository.TxManager
 
 	UserService service.UserService
 	Router      *gin.Engine
@@ -58,11 +61,17 @@ func Build(cfg *config.Config) (*Container, error) {
 		rdb = nil
 	}
 
+	var userCache cache.Cache
+	if rdb != nil {
+		userCache = infraRedis.NewCache(rdb)
+	}
+
 	// 3. repository（注入连接，返回接口）
 	userRepo := repository.NewUserRepository(gdb)
+	txManager := repository.NewTxManager(gdb)
 
 	// 4. service（注入 repository，返回接口）
-	userSvc := service.NewUserService(userRepo, rdb)
+	userSvc := service.NewUserService(userRepo, userCache)
 
 	// 5. handler（注入 service / 依赖，供探针使用）
 	healthHandler := handler.NewHealthHandler(gdb, rdb)
@@ -78,6 +87,8 @@ func Build(cfg *config.Config) (*Container, error) {
 		Config:      cfg,
 		DB:          gdb,
 		Redis:       rdb,
+		Cache:       userCache,
+		TxManager:   txManager,
 		UserService: userSvc,
 		Router:      r,
 	}, nil

@@ -109,9 +109,11 @@ curl http://localhost:8080/health
 | --- | --- | --- |
 | GET | `/health` | 存活检查 |
 | GET | `/ready` | 就绪检查（MySQL / Redis） |
-| POST | `/api/users` | 创建用户 |
-| GET | `/api/users/:id` | 查询用户（带 Redis 缓存） |
-| GET | `/api/users?page=1&size=10` | 用户列表（分页） |
+| POST | `/api/v1/users` | 创建用户（返回新 ID） |
+| GET | `/api/v1/users/:id` | 查询用户（带 Redis 缓存） |
+| PUT | `/api/v1/users/:id` | 更新用户（成功后失效缓存） |
+| DELETE | `/api/v1/users/:id` | 删除用户（成功后失效缓存） |
+| GET | `/api/v1/users?page=1&size=10` | 用户列表（分页） |
 
 统一响应格式：
 

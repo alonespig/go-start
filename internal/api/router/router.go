@@ -30,13 +30,15 @@ func New(cfg *config.Config, health *handler.HealthHandler, user *handler.UserHa
 	r.GET("/health", health.Check)
 	r.GET("/ready", health.Ready)
 
-	// 业务路由
-	api := r.Group("/api")
+	// 业务路由（版本化，便于后续并行维护 v2）
+	api := r.Group("/api/v1")
 	{
 		users := api.Group("/users")
 		{
 			users.POST("", user.Create)
 			users.GET("/:id", user.Get)
+			users.PUT("/:id", user.Update)
+			users.DELETE("/:id", user.Delete)
 			users.GET("", user.List)
 		}
 	}
