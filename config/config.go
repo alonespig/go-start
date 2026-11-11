@@ -12,7 +12,6 @@ type Config struct {
 	Server ServerConfig `mapstructure:"server"`
 	MySQL  MySQLConfig  `mapstructure:"mysql"`
 	Redis  RedisConfig  `mapstructure:"redis"`
-	Mongo  MongoConfig  `mapstructure:"mongo"`
 	Log    LogConfig    `mapstructure:"log"`
 }
 
@@ -51,11 +50,6 @@ type RedisConfig struct {
 	Addr     string `mapstructure:"addr"`
 	Password string `mapstructure:"password"`
 	DB       int    `mapstructure:"db"`
-}
-
-type MongoConfig struct {
-	URI      string `mapstructure:"uri"`
-	Database string `mapstructure:"database"`
 }
 
 type LogConfig struct {

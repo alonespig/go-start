@@ -12,7 +12,7 @@ var cfgFile string
 var rootCmd = &cobra.Command{
 	Use:   "go-starter",
 	Short: "go-starter 通用后端脚手架",
-	Long:  "一个基于 Gin + GORM + Redis + MongoDB 的通用后端脚手架，支持多命令启动。",
+	Long:  "一个基于 Gin + GORM + Redis 的通用后端脚手架，支持多命令启动。",
 }
 
 // Execute 是 CLI 入口，由 main 调用

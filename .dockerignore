@@ -9,4 +9,5 @@ Makefile
 Dockerfile
 docker-compose.yml
 .dockerignore
+config.yaml
 config.docker.yaml

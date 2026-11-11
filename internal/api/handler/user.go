@@ -9,6 +9,7 @@ import (
 	"go-starter/internal/service"
 	"go-starter/pkg/errcode"
 	"go-starter/pkg/slice"
+	"go-starter/pkg/validation"
 )
 
 type UserHandler struct {
@@ -22,7 +23,9 @@ func NewUserHandler(svc service.UserService) *UserHandler {
 func (h *UserHandler) Create(c *gin.Context) {
 	var req dto.CreateUserReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.Fail(c, errcode.New(errcode.CodeInvalidParam, "参数错误: "+err.Error()))
+		response.FailWithData(c,
+			errcode.Wrap(err, errcode.CodeInvalidParam, "参数校验失败"),
+			validation.FormatError(err))
 		return
 	}
 	if err := h.svc.Create(c.Request.Context(), req.ToModel()); err != nil {
@@ -49,7 +52,9 @@ func (h *UserHandler) Get(c *gin.Context) {
 func (h *UserHandler) List(c *gin.Context) {
 	var req dto.PageReq
 	if err := c.ShouldBindQuery(&req); err != nil {
-		response.Fail(c, errcode.New(errcode.CodeInvalidParam, "参数错误: "+err.Error()))
+		response.FailWithData(c,
+			errcode.Wrap(err, errcode.CodeInvalidParam, "参数校验失败"),
+			validation.FormatError(err))
 		return
 	}
 	page, size := req.Normalize()

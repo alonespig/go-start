@@ -5,10 +5,10 @@ import (
 	"errors"
 	"time"
 
+	"go-starter/pkg/log"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"
-	"go-starter/pkg/log"
 )
 
 // gormLogger 把 GORM 的 SQL 日志接到全局 zap，统一日志格式。

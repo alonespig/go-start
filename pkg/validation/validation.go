@@ -5,11 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
 	"reflect"
 	"strings"
 
-	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
 )
@@ -103,16 +101,4 @@ func FormatError(err error) map[string]string {
 
 	result["_body"] = "请求参数不合法"
 	return result
-}
-
-func BindJson[T any](ctx *gin.Context, req T) bool {
-	if err := ctx.ShouldBindJSON(req); err != nil {
-		ctx.JSON(http.StatusOK, gin.H{
-			"code":    400,
-			"message": "参数校验失败",
-			"errors":  FormatError(err),
-		})
-		return false
-	}
-	return true
 }

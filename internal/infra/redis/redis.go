@@ -20,6 +20,7 @@ func New(cfg config.RedisConfig) (*redis.Client, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	if err := client.Ping(ctx).Err(); err != nil {
+		_ = client.Close() // ping 失败时释放连接池，避免泄漏
 		return nil, fmt.Errorf("连接 redis 失败: %w", err)
 	}
 	return client, nil

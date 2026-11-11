@@ -7,7 +7,6 @@
 - Web 框架：[Gin](https://github.com/gin-gonic/gin)
 - ORM / 数据库：[GORM](https://gorm.io) + MySQL
 - 缓存：[go-redis v9](https://github.com/redis/go-redis)
-- 文档数据库：[mongo-driver](https://github.com/mongodb/mongo-go-driver)
 - CLI / 配置：[Cobra](https://github.com/spf13/cobra) + [Viper](https://github.com/spf13/viper)
 - 日志：[Zap](https://github.com/uber-go/zap)
 - 定时任务：[robfig/cron](https://github.com/robfig/cron)
@@ -43,12 +42,11 @@ go-starter/
     ├── repository/          # 数据访问层
     ├── infra/               # 基础设施层
     │   ├── db/              # GORM MySQL
-    │   ├── redis/           # Redis
-    │   └── mongo/           # MongoDB
+    │   └── redis/           # Redis
     └── model/               # 数据模型
 ```
 
-依赖方向（单向）：`cmd → config → di → infra → repository → service → api`
+依赖方向（单向）：`cmd → di`，`api → service → repository → infra`；`config`、`pkg` 为公共依赖。
 
 ## 快速开始
 
@@ -125,7 +123,7 @@ curl http://localhost:8080/health
 
 ## Docker 部署
 
-1. 构建并启动全部服务（MySQL / Redis / Mongo / 应用）：
+1. 构建并启动全部服务（MySQL / Redis / 应用）：
 
 ```bash
 docker compose up -d
@@ -143,4 +141,4 @@ docker compose run --rm app migrate
 curl http://localhost:8080/health
 ```
 
-说明：容器内使用 `config.docker.yaml`（`docker-compose.yml` 已将其挂载为 `/app/config.yaml`），数据库地址指向 compose 服务名（`mysql` / `redis` / `mongo`）。本机直接 `go run . serve` 时用根目录的 `config.yaml`（地址是 `127.0.0.1`），两者互不影响。
+说明：容器内使用 `config.docker.yaml`（`docker-compose.yml` 已将其挂载为 `/app/config.yaml`），数据库地址指向 compose 服务名（`mysql` / `redis`）。本机直接 `go run . serve` 时用根目录的 `config.yaml`（地址是 `127.0.0.1`），两者互不影响。

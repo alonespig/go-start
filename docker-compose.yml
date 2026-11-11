@@ -13,8 +13,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      mongo:
-        condition: service_started
 
   mysql:
     image: mysql:8.0
@@ -45,15 +43,5 @@ services:
       timeout: 3s
       retries: 10
 
-  mongo:
-    image: mongo:7
-    container_name: go-starter-mongo
-    restart: unless-stopped
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo-data:/data/db
-
 volumes:
   mysql-data:
-  mongo-data:

@@ -24,10 +24,6 @@ redis:
   password: ""
   db: 0
 
-mongo:
-  uri: mongodb://mongo:27017
-  database: go_starter
-
 log:
   level: info
   file: ""   # 容器内输出到 stdout，由 docker logs 收集

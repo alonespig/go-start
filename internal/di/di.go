@@ -21,7 +21,6 @@ type Container struct {
 	Config *config.Config
 	DB     *gorm.DB
 	Redis  *redis.Client
-	//Mongo  *mongo.Client
 
 	UserService service.UserService
 	Router      *gin.Engine
@@ -32,6 +31,11 @@ func Build(cfg *config.Config) (*Container, error) {
 	// 1. 用配置覆盖全局 logger 的默认初始化（init 里已用默认值初始化过）
 	if err := log.Init(cfg.Log); err != nil {
 		return nil, err
+	}
+
+	// 生产环境关闭 gin debug 模式（路由打印、额外检查），必须在 router.New 之前设置
+	if cfg.App.Env == "prod" || cfg.App.Env == "production" {
+		gin.SetMode(gin.ReleaseMode)
 	}
 
 	// 2. infra：MySQL 是强依赖
@@ -47,13 +51,6 @@ func Build(cfg *config.Config) (*Container, error) {
 		rdb = nil
 	}
 
-	// Mongo 可选：连不上只告警（当前尚未使用）
-	//var mdb *mongo.Client
-	//if mdb, err = infraMongo.New(cfg.Mongo); err != nil {
-	//	log.Warn("mongo 连接失败，降级为不可用", zap.Error(err))
-	//	mdb = nil
-	//}
-
 	// 3. repository（注入连接，返回接口）
 	userRepo := repository.NewUserRepository(gdb)
 
@@ -68,10 +65,9 @@ func Build(cfg *config.Config) (*Container, error) {
 	r := router.New(healthHandler, userHandler)
 
 	return &Container{
-		Config: cfg,
-		DB:     gdb,
-		Redis:  rdb,
-		//Mongo:       mdb,
+		Config:      cfg,
+		DB:          gdb,
+		Redis:       rdb,
 		UserService: userSvc,
 		Router:      r,
 	}, nil
@@ -87,7 +83,4 @@ func (c *Container) Close() {
 	if c.Redis != nil {
 		_ = c.Redis.Close()
 	}
-	//if c.Mongo != nil {
-	//	_ = c.Mongo.Disconnect(context.Background())
-	//}
 }

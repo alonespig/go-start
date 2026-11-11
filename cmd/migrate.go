@@ -18,11 +18,16 @@ var migrateCmd = &cobra.Command{
 			return fmt.Errorf("加载配置失败: %w", err)
 		}
 
-		// 迁移只需要 MySQL，直接用 db.New，不依赖 Redis/Mongo
+		// 迁移只需要 MySQL，直接用 db.New，不依赖 Redis
 		gdb, err := db.New(cfg.MySQL)
 		if err != nil {
 			return err
 		}
+		defer func() {
+			if sqlDB, err := gdb.DB(); err == nil {
+				_ = sqlDB.Close()
+			}
+		}()
 
 		// 迁移表结构：在这里追加所有需要迁移的 model
 		if err := gdb.AutoMigrate(&model.User{}); err != nil {
