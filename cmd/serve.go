@@ -37,11 +37,21 @@ var serveCmd = &cobra.Command{
 		srv := &http.Server{
 			Addr:    addr,
 			Handler: container.Router,
+			// 只限制请求头读取，防慢连接；SSE / WebSocket 不受影响
+			ReadHeaderTimeout: cfg.Server.ReadHeaderTimeout,
+			// 读请求体的总时限；长连接读（WebSocket）建议配 0
+			ReadTimeout: cfg.Server.ReadTimeout,
+			// 写响应的总时限；SSE 长连接建议配 0，或用 ResponseController 单独取消
+			WriteTimeout: cfg.Server.WriteTimeout,
+			// keep-alive 空闲回收；只作用于请求之间，不影响进行中的长连接
+			IdleTimeout: cfg.Server.IdleTimeout,
 		}
 
+		// 监听失败（如端口被占用）要传回主 goroutine，否则进程会一直阻塞在 <-quit 上假装在跑
+		errCh := make(chan error, 1)
 		go func() {
 			if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-				log.Error("http server error", zap.Error(err))
+				errCh <- err
 			}
 		}()
 		log.Info("http server started", zap.String("addr", addr))
@@ -49,7 +59,12 @@ var serveCmd = &cobra.Command{
 		// 优雅退出
 		quit := make(chan os.Signal, 1)
 		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-		<-quit
+
+		select {
+		case err := <-errCh:
+			return fmt.Errorf("http server 启动失败: %w", err)
+		case <-quit:
+		}
 
 		log.Info("shutting down server...")
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

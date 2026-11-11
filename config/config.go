@@ -2,22 +2,33 @@ package config
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/spf13/viper"
 )
 
 type Config struct {
-	App   AppConfig   `mapstructure:"app"`
-	MySQL MySQLConfig `mapstructure:"mysql"`
-	Redis RedisConfig `mapstructure:"redis"`
-	Mongo MongoConfig `mapstructure:"mongo"`
-	Log   LogConfig   `mapstructure:"log"`
+	App    AppConfig    `mapstructure:"app"`
+	Server ServerConfig `mapstructure:"server"`
+	MySQL  MySQLConfig  `mapstructure:"mysql"`
+	Redis  RedisConfig  `mapstructure:"redis"`
+	Mongo  MongoConfig  `mapstructure:"mongo"`
+	Log    LogConfig    `mapstructure:"log"`
 }
 
 type AppConfig struct {
 	Name string `mapstructure:"name"`
 	Env  string `mapstructure:"env"`
 	Port int    `mapstructure:"port"`
+}
+
+// ServerConfig HTTP 服务的超时设置，值用带单位的时长（如 "10s"、"1m30s"）；
+// 显式写成 0 表示不限制。SSE / WebSocket 的注意事项见 config.example.yaml。
+type ServerConfig struct {
+	ReadHeaderTimeout time.Duration `mapstructure:"read_header_timeout"`
+	ReadTimeout       time.Duration `mapstructure:"read_timeout"`
+	WriteTimeout      time.Duration `mapstructure:"write_timeout"`
+	IdleTimeout       time.Duration `mapstructure:"idle_timeout"`
 }
 
 type MySQLConfig struct {
@@ -61,6 +72,10 @@ func Load(path string) (*Config, error) {
 	v.SetDefault("app.name", "go-starter")
 	v.SetDefault("app.env", "dev")
 	v.SetDefault("app.port", 8080)
+	v.SetDefault("server.read_header_timeout", "10s")
+	v.SetDefault("server.read_timeout", "30s")
+	v.SetDefault("server.write_timeout", "30s")
+	v.SetDefault("server.idle_timeout", "120s")
 	v.SetDefault("mysql.host", "127.0.0.1")
 	v.SetDefault("mysql.port", 3306)
 	v.SetDefault("mysql.max_idle_conns", 10)

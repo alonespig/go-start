@@ -1,11 +1,8 @@
 package di
 
 import (
-	"context"
-
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
-	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
@@ -13,7 +10,6 @@ import (
 	"go-starter/internal/api/handler"
 	"go-starter/internal/api/router"
 	"go-starter/internal/infra/db"
-	infraMongo "go-starter/internal/infra/mongo"
 	infraRedis "go-starter/internal/infra/redis"
 	"go-starter/internal/repository"
 	"go-starter/internal/service"
@@ -25,7 +21,7 @@ type Container struct {
 	Config *config.Config
 	DB     *gorm.DB
 	Redis  *redis.Client
-	Mongo  *mongo.Client
+	//Mongo  *mongo.Client
 
 	UserService service.UserService
 	Router      *gin.Engine
@@ -52,11 +48,11 @@ func Build(cfg *config.Config) (*Container, error) {
 	}
 
 	// Mongo 可选：连不上只告警（当前尚未使用）
-	var mdb *mongo.Client
-	if mdb, err = infraMongo.New(cfg.Mongo); err != nil {
-		log.Warn("mongo 连接失败，降级为不可用", zap.Error(err))
-		mdb = nil
-	}
+	//var mdb *mongo.Client
+	//if mdb, err = infraMongo.New(cfg.Mongo); err != nil {
+	//	log.Warn("mongo 连接失败，降级为不可用", zap.Error(err))
+	//	mdb = nil
+	//}
 
 	// 3. repository（注入连接，返回接口）
 	userRepo := repository.NewUserRepository(gdb)
@@ -72,10 +68,10 @@ func Build(cfg *config.Config) (*Container, error) {
 	r := router.New(healthHandler, userHandler)
 
 	return &Container{
-		Config:      cfg,
-		DB:          gdb,
-		Redis:       rdb,
-		Mongo:       mdb,
+		Config: cfg,
+		DB:     gdb,
+		Redis:  rdb,
+		//Mongo:       mdb,
 		UserService: userSvc,
 		Router:      r,
 	}, nil
@@ -91,7 +87,7 @@ func (c *Container) Close() {
 	if c.Redis != nil {
 		_ = c.Redis.Close()
 	}
-	if c.Mongo != nil {
-		_ = c.Mongo.Disconnect(context.Background())
-	}
+	//if c.Mongo != nil {
+	//	_ = c.Mongo.Disconnect(context.Background())
+	//}
 }

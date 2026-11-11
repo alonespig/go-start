@@ -17,7 +17,8 @@
 ```
 go-starter/
 ├── main.go                  # 入口，仅调用 cmd.Execute()
-├── config.yaml              # 配置文件
+├── config.example.yaml      # 配置模板（复制为 config.yaml 后使用）
+├── config.yaml              # 本地配置，已被 gitignore，不提交
 ├── cmd/                     # Cobra 命令层（每个命令一种进程角色）
 │   ├── root.go
 │   ├── serve.go             # HTTP 服务
@@ -51,7 +52,12 @@ go-starter/
 
 ## 快速开始
 
-1. 修改根目录 `config.yaml` 里的 MySQL / Redis / Mongo 连接信息。
+1. 复制示例配置，并按需修改 MySQL / Redis 连接信息（`config.yaml` 已被 `.gitignore` 忽略，不会提交）：
+
+```bash
+cp config.example.yaml config.yaml
+```
+
 2. 执行数据库迁移：
 
 ```bash
@@ -112,6 +118,8 @@ curl http://localhost:8080/health
 ## 注意事项
 
 - 错误码统一放 `pkg/errcode`，业务层返回 `BizError`，handler 层用 `response.Fail` 翻译成响应。不要把业务错误码放 `api` 层，避免 service 反向依赖 api。
+- HTTP 超时在配置的 `server` 段设置（默认 `read_header_timeout: 10s`、`read_timeout: 30s`、`write_timeout: 30s`、`idle_timeout: 120s`）。上 SSE 前把 `write_timeout` 调成 `0`，或在 handler 里用 `http.NewResponseController(c.Writer).SetWriteDeadline(time.Time{})` 单独取消；WebSocket 建议 `read_timeout`、`write_timeout` 都设 `0`（或在升级拿到连接后自行清除 deadline）。
+- 优雅退出最多等 10s：SSE 是活跃请求，`Shutdown` 会一直等到超时，需要在退出时主动通知 SSE handler 关闭；WebSocket 连接被 hijack 后不受 `Shutdown` 管理，需要自己记录并在退出时关闭。
 - Redis 目前定位为缓存（cache-aside 模式），需要分布式锁/计数器时再单独封装。
 - 模块名当前为 `go-starter`，如需发布可改成 `github.com/yourname/go-starter` 并全局替换 import 路径。
 

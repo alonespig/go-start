@@ -1,0 +1,38 @@
+# 配置示例：复制为 config.yaml 后按需修改
+# cp config.example.yaml config.yaml
+# config.yaml 已被 .gitignore 忽略，不会提交到仓库
+
+app:
+  name: go-starter
+  env: dev
+  port: 8080
+
+server:
+  # 只限制请求头的读取时间，防慢连接；对 SSE / WebSocket 无影响
+  read_header_timeout: 10s
+  # 读请求体（含上传）的总时限；0 表示不限制
+  # WebSocket 升级后仍会沿用这个读 deadline，建议配 0 或在升级后自行清除
+  read_timeout: 30s
+  # 写响应的总时限；SSE 长连接必须配 0，或在 handler 里用
+  # http.NewResponseController(c.Writer).SetWriteDeadline(time.Time{}) 单独取消
+  write_timeout: 30s
+  # keep-alive 空闲连接回收时间；只作用于请求之间，不影响进行中的长连接
+  idle_timeout: 120s
+
+mysql:
+  host: 127.0.0.1
+  port: 3306
+  user: root
+  password: ""
+  dbname: go_starter
+  max_idle_conns: 10
+  max_open_conns: 100
+
+redis:
+  addr: 127.0.0.1:6379
+  password: ""
+  db: 0
+
+log:
+  level: info
+  file: logs/app.log
