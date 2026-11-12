@@ -23,6 +23,7 @@ go-starter/
 ├── config.example.yaml      # 配置模板（复制为 config.yaml 后使用）
 ├── config.yaml              # 本地配置，已被 gitignore，不提交
 ├── docs/                    # OpenAPI 文档
+├── tools/                   # 开发辅助工具（模块路径重命名等）
 ├── .golangci.yml            # lint 配置
 ├── cmd/                     # Cobra 命令层（每个命令一种进程角色）
 │   ├── root.go
@@ -81,6 +82,26 @@ go run . serve
 ```bash
 curl http://localhost:8080/health
 ```
+
+## 模块路径与 fork
+
+`go.mod` 里是 `module github.com/alonespig/go-start`。Go 用模块路径标识包，**本地克隆、改代码、运行都不需要它和仓库地址一致**，直接 `go build ./...` / `go test ./...` 即可，克隆到任何目录都没影响。
+
+只有当你把项目 fork 到自己的仓库、并希望别人用 `go get github.com/yourname/your-project` 拉取时，才需要改路径：
+
+```bash
+go run ./tools/rename-module github.com/yourname/your-project
+```
+
+或者：
+
+```bash
+make rename-module MODULE=github.com/yourname/your-project
+```
+
+脚本会同步更新 `go.mod`、所有 Go import、README 和 ldflags 注释；先加 `-dry-run` 可以只看将要修改的文件。改完执行 `go mod tidy && go build ./...` 验证即可。
+
+如果只是把脚手架当模板、不打算发布成 Go module，也可以把模块名改成中性的 `go-starter`，这样连 fork 都不需要改。
 
 ## 命令
 
